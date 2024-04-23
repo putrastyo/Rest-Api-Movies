@@ -14,7 +14,7 @@ class MovieController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Movie::query();
+        $query = Movie::query(); // persiapan pengecekan query parameter
 
         if ($request->has('title')) {
             $sortDirection = $request->title === 'asc' ? 'asc' : 'desc';
@@ -31,7 +31,7 @@ class MovieController extends Controller
             $query->orderBy('release_date', $sortDirection);
         }
 
-        $movies = $query->paginate(10);
+        $movies = $query->with('media')->paginate(10);
 
         return response()->json($movies);
     }
@@ -56,6 +56,19 @@ class MovieController extends Controller
             'rating' => $request->rating,
         ]);
 
+
+        // 3. Create Media & Store to disk
+        for ($i=1; $i <= 3; $i++) {
+            if ($request->hasFile('media'.$i)) {
+                $mediaFilename = $request->file('media'.$i)->hashName();
+                $movie->media()->create([
+                    'path' => $mediaFilename,
+                    'is_thumbnail' => $i == 1, // true jika image1
+                ]);
+                $request->file('media'.$i)->storeAs('public/media', $mediaFilename);
+            }
+        }
+
         // 3. return response
         return response()->json([
             'message' => 'Movie created successfully',
@@ -67,7 +80,7 @@ class MovieController extends Controller
      */
     public function show(string $id)
     {
-        $movie = Movie::find($id);
+        $movie = Movie::with('media')->find($id);
         return response()->json($movie);
     }
 
@@ -84,13 +97,27 @@ class MovieController extends Controller
         }
 
         // 2. Update Movie
-        $movie = Movie::find($id);
+        $movie = Movie::with('media')->find($id);
         $movie->update([
             'title' => $request->title,
             'description' => $request->description,
             'release_date' => $request->release_date,
             'rating' => $request->rating,
         ]);
+        // 3. Check updated media
+        for ($i=1; $i <= 3; $i++) {
+            if ($request->hasFile('media'.$i)) {
+                unlink(storage_path('app/public/media/' . $movie->media[$i-1]->path)); // delete old file
+
+                $mediaFilename = $request->file('media'.$i)->hashName(); // generate new filename
+                // update path media pada database
+                $movie->media[$i-1]->update([
+                    'path' => $mediaFilename,
+                ]);
+
+                $request->file('media'.$i)->storeAs('public/media', $mediaFilename);
+            }
+        }
 
         // 3. return response
         return response()->json([
@@ -110,8 +137,12 @@ class MovieController extends Controller
             ], 403);
         }
 
-        // 2. Delete Movie
-        Movie::find($id)->delete();
+        // 2. Delete Movie & Media
+        $movie = Movie::with('media')->find($id);
+        foreach ($movie->media as $media) {
+            unlink(storage_path('app/public/media/' . $media->path)); // delete all media file
+        }
+        $movie->delete();
 
         // 3. return response
         return response()->json([

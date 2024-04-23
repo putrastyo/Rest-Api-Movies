@@ -26,6 +26,9 @@ class StoreMoviesRequest extends FormRequest
             'description' => 'required',
             'release_date' => 'required|date',
             'rating' => 'required|numeric',
+            'media1' => 'required|image|mimes:jpeg,png,jpg,webp|max:2048', // for thumbnail
+            'media2' => 'image|mimes:jpeg,png,jpg,webp,mp4|max:2048', // mp4 for video
+            'media3' => 'image|mimes:jpeg,png,jpg,webp,mp4|max:2048', // mp4 for video
         ];
     }
 }
