@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\MovieController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -9,4 +10,6 @@ Route::post('login', [UserController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('logout', [UserController::class, 'logout']);
     Route::get('me', [UserController::class, 'me']);
+
+    Route::apiResource('/movies', MovieController::class);
 });

@@ -43,13 +43,16 @@ class UserController extends Controller
      */
     public function register(StoreUserRequest $request)
     {
-        // 1. Create User
-        $user = User::create([
+        // 1. Create User (jika belom ada akun admin, maka yg pertama kali register dibuatkan role admin)
+        $findAdmin = User::where('role', 'admin')->first();
+        $role = !$findAdmin ? 'admin' : 'user';
+        User::create([
             'username' => $request->username,
             'password' => Hash::make($request->password),
             'name' => $request->name,
             'gender' => $request->gender,
             'date_of_birth' => $request->date_of_birth,
+            'role' => $role
         ]);
 
         // 2. return response
